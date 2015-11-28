@@ -56,7 +56,7 @@ BUTTON_BACK = 'button_back'
 RASPBERRY_IP = 'raspberry_ip'
 RASPBERRY_UDP_PORT = 'raspberry_udp_port'
 HZ = 'hz'
-INI_SECTION = 'rpi_dashboard_data_provider'
+INI_SECTION = 'pdu1800'
 SHOW_DEBUG_WINDOW = 'show_debug_window'
 
 SESSION_TYPE = ['Unbekannt', 'Practice', 'Qualifying', 'Race', 'Hotlap', 'TimeAttack', 'Drift', 'Drag']
