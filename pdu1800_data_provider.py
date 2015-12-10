@@ -130,7 +130,7 @@ def convert_to_lowercase_and_underscore(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
-def struct_to_hash(struct):
+def struct_to_hash(s):
     """
     Convert the given struct to a python hash
     Args:
@@ -139,15 +139,16 @@ def struct_to_hash(struct):
     Returns: The struct as hash. The fieldnames are converted to lowercase/underscore
     """
     h = {}
-    for field, type_spec in struct._fields_:
+    d = [(field, getattr(s, field)) for field in [f[0] for f in s._fields_]]
+    for field, value in d:
         if field not in LUT_FIELDNAMES_TO_UNDERSCORE:
             LUT_FIELDNAMES_TO_UNDERSCORE[field] = convert_to_lowercase_and_underscore(field)
-        field = LUT_FIELDNAMES_TO_UNDERSCORE[field]
-        value = getattr(struct, field)
+        field_name = LUT_FIELDNAMES_TO_UNDERSCORE[field]
         if not isinstance(value, (str, float, int)):
             value = list(value)
-        h[field] = value
+        h[field_name] = value
     return h
+
 
 def getit(key, h):
     """Return h[key]. If key has '.' in it like static.max_fuel, return h[static][max_fuel]"""
@@ -259,7 +260,7 @@ class PDU1800DataProvider:
 
     def update_labels_in_debug_window(self):
         for label_name in self.field_shown_in_debug_window:
-            self.debug_window.labels[label_name].setText("{}: {}".format(label_name, self.data.get(label_name, '__not_found__')))
+            self.debug_window.labels[label_name].setText("{}: {}".format(label_name, getit(label_name, self.data)))
 
     def emit(self):
         self.udp_sock.sendto(pickle.dumps(self.data, protocol=2), (self.raspberry_ip, self.raspberry_udp_port))
@@ -269,6 +270,7 @@ class PDU1800DataProvider:
         # Reading the static section within the shared memory needs to be done within the acUpdate(), but the
         # first frame is all we need.
         #
+
 
         if not self.static_set:
             self.data['static'] = struct_to_hash(self.info.static)
@@ -286,11 +288,10 @@ class PDU1800DataProvider:
         #
         # Dynamic updates
         #
-        self.data['graphics'] = self.info.graphics
-        self.data['physics'] = self.info.physics
+        self.data['graphics'] = struct_to_hash(self.info.graphics)
+        self.data['physics'] = struct_to_hash(self.info.physics)
         self.data['frames_skipped'] = self.frames_skipped
         self.frames_skipped = 0
-
         #
         # Handle events
         #
