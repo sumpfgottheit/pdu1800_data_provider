@@ -42,7 +42,7 @@ from sim_info import info
 from util import Label, validate_ip
 import pygame
 from mGameController import GameController
-
+import re
 
 #
 # Constants
@@ -63,6 +63,8 @@ SESSION_TYPE = ['Unbekannt', 'Practice', 'Qualifying', 'Race', 'Hotlap', 'TimeAt
 INI_FILE = os.path.join(os.path.dirname(__file__), 'config.ini')
 DEFAULT_CONFIG_DICT = {BUTTON_FORWARD: -1, BUTTON_BACK: -1, RASPBERRY_IP: '', RASPBERRY_UDP_PORT: 18877, HZ: 30, SHOW_DEBUG_WINDOW: False}
 
+LUT_FIELDNAMES_TO_UNDERSCORE = {}
+
 #
 # Global Variables
 #
@@ -73,7 +75,7 @@ def acMain(ac_version):
     try:
         """ Must init Pygame now and must be first before trying to access the gamedevice.device object"""
         pygame.init()
-        app = RPIDashboardDataProvider(APPNAME)
+        app = PDU1800DataProvider(APPNAME)
         return APPNAME
     except Exception as e:
         ac.log("Error in acMain: {}".format(str(e)))
@@ -119,8 +121,43 @@ class DataProviderIngameDebugWindow:
     def app_id(self):
         return self._id
 
+def convert_to_lowercase_and_underscore(name):
+    """
+    The Shared Memory is in CamelCase - convert the names to Python Standard lowercase with underscores
+    http://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-camel-case
+    """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-class RPIDashboardDataProvider:
+
+def struct_to_hash(struct):
+    """
+    Convert the given struct to a python hash
+    Args:
+        struct: The sim_info-scruct
+
+    Returns: The struct as hash. The fieldnames are converted to lowercase/underscore
+    """
+    h = {}
+    for field, type_spec in struct._fields_:
+        if field not in LUT_FIELDNAMES_TO_UNDERSCORE:
+            LUT_FIELDNAMES_TO_UNDERSCORE[field] = convert_to_lowercase_and_underscore(field)
+        field = LUT_FIELDNAMES_TO_UNDERSCORE[field]
+        value = getattr(struct, field)
+        if not isinstance(value, (str, float, int)):
+            value = list(value)
+        h[field] = value
+    return h
+
+def getit(key, h):
+    """Return h[key]. If key has '.' in it like static.max_fuel, return h[static][max_fuel]"""
+    if '.' in key:
+        keys = key.split('.')
+        return h.get(keys[0]).get(keys[1])
+    else:
+        return h.get(key)
+
+class PDU1800DataProvider:
     def __init__(self, appname):
 
         self.appname = appname
@@ -130,10 +167,8 @@ class RPIDashboardDataProvider:
         # Structures for Data Capture
         #
         self.info = info  # sim_info
-        self.data = dict(max_rpm=0, rpms=0, car_model='', nickname='', trackname='', max_fuel=0.0,
-                         fuel=0.0, gear=0, kmh=0, pit_limiter=True, drs=False, abs=False, tc=False,
-                         session_type=-1, game_controller='', button_pressed=0, hz=0, interval=0, frames_skipped=0,
-                         pos=0, num_cars=0, num_laps=0, laps_completed=0, icurrent_time=0, ilast_time=0, ibest_time=0)
+        self.data = dict()
+
         #
         # GameController Fu
         #
@@ -155,6 +190,9 @@ class RPIDashboardDataProvider:
         self.hz = config_dict[HZ]
         self.show_debug_window = config_dict[SHOW_DEBUG_WINDOW]
 
+        self.data['raspberry_ip'] = self.raspberry_ip
+        self.data['raspberry_udp_port'] = self.raspberry_udp_port
+
         ac.log("{} config: {}".format(self.appname, pformat(config_dict, indent=0, width=10000)))
         #
         # Set the Interval for Updates
@@ -168,9 +206,17 @@ class RPIDashboardDataProvider:
         #
         # The Debugwindow as Application
         #
+        fields_from_static = ('max_rpm', 'car_model', 'nickname', 'max_fuel', 'num_cars')
+        fields_from_physics = ('rpms', 'fuel', 'gear', 'speed_kmh', 'pit_limiter_on')
+        fields_from_graphics = ('position', 'number_of_laps', 'completed_laps', 'i_current_time', 'i_last_time', 'i_best_time')
+
+        self.field_shown_in_debug_window = (['static.{0}'.format(s) for s in fields_from_static] +
+                                            ['physics.{0}'.format(s) for s in fields_from_physics] +
+                                            ['graphics.{0}'.format(s) for s in fields_from_graphics] +
+                                            ['frames_skipped', 'interval', 'raspberry_ip', 'raspberry_udp_port'])
         if self.show_debug_window:
             self.debug_window = DataProviderIngameDebugWindow(self.appname, 300, 500)
-            for name in self.data.keys():
+            for name in self.field_shown_in_debug_window:
                 self.debug_window.add_label(Label(self.debug_window.app_id, name, '{}: N/A'.format(name)))
             self.debug_window.pack()
 
@@ -212,8 +258,8 @@ class RPIDashboardDataProvider:
                     raspberry_udp_port=raspberry_udp_port, hz=hz, show_debug_window=show_debug_window), True
 
     def update_labels_in_debug_window(self):
-        for label_name, value in self.data.items():
-            self.debug_window.labels[label_name].setText("{}: {}".format(label_name, value))
+        for label_name in self.field_shown_in_debug_window:
+            self.debug_window.labels[label_name].setText("{}: {}".format(label_name, self.data.get(label_name, '__not_found__')))
 
     def emit(self):
         self.udp_sock.sendto(pickle.dumps(self.data, protocol=2), (self.raspberry_ip, self.raspberry_udp_port))
@@ -225,11 +271,7 @@ class RPIDashboardDataProvider:
         #
 
         if not self.static_set:
-            self.data['max_rpm'] = self.info.static.maxRpm
-            self.data['car_model'] = self.info.static.carModel
-            self.data['nickname'] = self.info.static.playerNick
-            self.data['trackname'] = self.info.static.track
-            self.data['max_fuel'] = self.info.static.maxFuel
+            self.data['static'] = struct_to_hash(self.info.static)
             self.static_set = True
 
         #
@@ -244,24 +286,10 @@ class RPIDashboardDataProvider:
         #
         # Dynamic updates
         #
+        self.data['graphics'] = self.info.graphics
+        self.data['physics'] = self.info.physics
         self.data['frames_skipped'] = self.frames_skipped
         self.frames_skipped = 0
-        self.data['rpms'] = self.info.physics.rpms
-        self.data['fuel'] = self.info.physics.fuel
-        self.data['gear'] = self.info.physics.gear - 1
-        self.data['kmh'] = self.info.physics.speedKmh
-        self.data['pit_limiter'] = self.info.physics.pitLimiterOn == 1
-        self.data['drs'] = self.info.physics.drs
-        self.data['abs'] = self.info.physics.abs
-        self.data['tc'] = self.info.physics.tc
-        self.data['session_type'] = SESSION_TYPE[self.info.graphics.session + 1]
-        self.data['pos'] = self.info.graphics.position
-        self.data['num_cars'] = self.info.static.numCars
-        self.data['num_laps'] = self.info.graphics.numberOfLaps
-        self.data['laps_completed'] = self.info.graphics.completedLaps
-        self.data['icurrent_time'] = self.info.graphics.iCurrentTime
-        self.data['ilast_time'] = self.info.graphics.iLastTime
-        self.data['ibest_time'] = self.info.graphics.iBestTime
 
         #
         # Handle events
