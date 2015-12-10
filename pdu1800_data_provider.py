@@ -133,8 +133,7 @@ class RPIDashboardDataProvider:
         self.data = dict(max_rpm=0, rpms=0, car_model='', nickname='', trackname='', max_fuel=0.0,
                          fuel=0.0, gear=0, kmh=0, pit_limiter=True, drs=False, abs=False, tc=False,
                          session_type=-1, game_controller='', button_pressed=0, hz=0, interval=0, frames_skipped=0,
-                         pos=0, num_cars=0, num_laps=0, laps_completed=0, current_time='', icurrent_time=0, last_time='',
-                         ilast_time=0)
+                         pos=0, num_cars=0, num_laps=0, laps_completed=0, icurrent_time=0, ilast_time=0, ibest_time=0)
         #
         # GameController Fu
         #
@@ -260,10 +259,9 @@ class RPIDashboardDataProvider:
         self.data['num_cars'] = self.info.static.numCars
         self.data['num_laps'] = self.info.graphics.numberOfLaps
         self.data['laps_completed'] = self.info.graphics.completedLaps
-        self.data['current_time'] = self.info.graphics.currentTime
         self.data['icurrent_time'] = self.info.graphics.iCurrentTime
-        self.data['last_time'] = self.info.graphics.lastTime
         self.data['ilast_time'] = self.info.graphics.iLastTime
+        self.data['ibest_time'] = self.info.graphics.iBestTime
 
         #
         # Handle events
