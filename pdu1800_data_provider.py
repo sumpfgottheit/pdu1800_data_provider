@@ -131,7 +131,6 @@ def convert_to_lowercase_and_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-
 def struct_to_hash(s):
     """
     Convert the given struct to a python hash
@@ -143,10 +142,14 @@ def struct_to_hash(s):
     h = {}
     d = [(field, getattr(s, field)) for field in [f[0] for f in s._fields_]]
     for field, value in d:
+        if field not in LUT_FIELDNAMES_TO_UNDERSCORE:
+            LUT_FIELDNAMES_TO_UNDERSCORE[field] = convert_to_lowercase_and_underscore(field)
+        field_name = LUT_FIELDNAMES_TO_UNDERSCORE[field]
         if not isinstance(value, (str, float, int)):
             value = list(value)
-        h[field] = value
+        h[field_name] = value
     return h
+
 
 
 def getit(key, h):
