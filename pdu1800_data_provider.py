@@ -125,6 +125,8 @@ def convert_to_lowercase_and_underscore(name):
     """
     The Shared Memory is in CamelCase - convert the names to Python Standard lowercase with underscores
     http://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-camel-case
+
+    I have already changed the names in sim_info.py, so this function is no longer used
     """
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
@@ -141,17 +143,19 @@ def struct_to_hash(s):
     h = {}
     d = [(field, getattr(s, field)) for field in [f[0] for f in s._fields_]]
     for field, value in d:
-        if field not in LUT_FIELDNAMES_TO_UNDERSCORE:
-            LUT_FIELDNAMES_TO_UNDERSCORE[field] = convert_to_lowercase_and_underscore(field)
-        field_name = LUT_FIELDNAMES_TO_UNDERSCORE[field]
         if not isinstance(value, (str, float, int)):
             value = list(value)
-        h[field_name] = value
+        h[field] = value
     return h
 
 
 def getit(key, h):
-    """Return h[key]. If key has '.' in it like static.max_fuel, return h[static][max_fuel]"""
+    """Return h[key]. If key has '.' in it like static.max_fuel, return h[static][max_fuel]
+    getit('physics.tyre_wear', h') will get you h['physics']['tyre_wear'].
+    It's just syntactic sugar, but easier to read.
+
+    Exceptions are not catched
+    """
     if '.' in key:
         keys = key.split('.')
         return h.get(keys[0]).get(keys[1])
