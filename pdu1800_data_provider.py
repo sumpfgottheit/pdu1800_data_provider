@@ -295,6 +295,8 @@ class PDU1800DataProvider:
         #
         # Dynamic updates
         #
+        self.data['delta'] = ac.getCarState(0, acsys.CS.PerformanceMeter)   # Delta gibts aus der Python API
+
         self.data['graphics'] = struct_to_hash(self.info.graphics)
         self.data['physics'] = struct_to_hash(self.info.physics)
         self.data['frames_skipped'] = self.frames_skipped
