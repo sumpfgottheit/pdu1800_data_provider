@@ -215,7 +215,7 @@ class PDU1800DataProvider:
         # The Debugwindow as Application
         #
         fields_from_static = ('max_rpm', 'car_model', 'nickname', 'max_fuel', 'num_cars')
-        fields_from_physics = ('rpms', 'fuel', 'gear', 'speed_kmh', 'pit_limiter_on')
+        fields_from_physics = ('tc', 'drs', 'abs', 'kers_charge', 'kers_input', 'rpms', 'fuel', 'gear', 'speed_kmh', 'pit_limiter_on')
         fields_from_graphics = ('position', 'number_of_laps', 'completed_laps', 'i_current_time', 'i_last_time', 'i_best_time')
 
         self.field_shown_in_debug_window = (['static.{0}'.format(s) for s in fields_from_static] +
