@@ -16,6 +16,7 @@ except ImportError:
 import os
 import sys
 import platform
+ac.console(str(sys.version))
 if platform.architecture()[0] == "64bit":
     ctypes_dir = 'stdlib64'
     pygame_dir = 'pygame64'
@@ -33,7 +34,14 @@ if '.' not in os.environ['PATH'].split(':'):
 # Import all other
 #
 import pickle
-import socket
+try:
+    import socket
+except ImportError as e:
+    import traceback
+    ac.console(str(e))
+    ac.console(traceback.format_exc(e))
+    ac.console("Could not import socket. Maybe you need to copy the correct _socket.pyd into the correct stdlib-dir of this plugin")
+
 from collections import OrderedDict
 from configparser import ConfigParser
 from time import perf_counter
@@ -48,7 +56,7 @@ import re
 # Constants
 #
 
-APPNAME = "RPI Dashboard Data Provider"
+APPNAME = "PDU1800 Data Provider"
 
 
 BUTTON_FORWARD = 'button_forward'
@@ -214,8 +222,8 @@ class PDU1800DataProvider:
         #
         # The Debugwindow as Application
         #
-        fields_from_static = ('max_rpm', 'car_model', 'nickname', 'max_fuel', 'num_cars')
-        fields_from_physics = ('tc', 'drs', 'abs', 'kers_charge', 'kers_input', 'rpms', 'fuel', 'gear', 'speed_kmh', 'pit_limiter_on')
+        fields_from_static = ('max_rpm', 'car_model', 'player_nick', 'max_fuel', 'num_cars')
+        fields_from_physics = ('abs', 'drs', 'tc', 'kers_charge', 'kers_input', 'rpms', 'fuel', 'gear', 'speed_kmh', 'pit_limiter_on')
         fields_from_graphics = ('position', 'number_of_laps', 'completed_laps', 'i_current_time', 'i_last_time', 'i_best_time')
 
         self.field_shown_in_debug_window = (['static.{0}'.format(s) for s in fields_from_static] +
