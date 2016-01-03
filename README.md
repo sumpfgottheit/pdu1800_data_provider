@@ -5,10 +5,10 @@ It is a Python Assetto Corsa Plugin and _should_ run as 32Bit or 64Bit plugin, b
 
 ## Installation
 
-.# Download and place it within a directory 'pdu1800_data_provider' within the $assettocorsa/apps/python/ directory
-.# Edit the 'config.ini' to suit your needs
-.# Enable it from the 'General' Tab.
-.# Take a look at the debug window which can be started ingame as application from the right application bar
+* Download and place it within a directory 'pdu1800_data_provider' within the $assettocorsa/apps/python/ directory
+* Edit the 'config.ini' to suit your needs
+* Enable it from the 'General' Tab.
+* Take a look at the debug window which can be started ingame as application from the right application bar
 
 ## Configuration
 
@@ -22,3 +22,9 @@ button_back = -1             # not yet used, but can be used to flip pages on th
 raspberry_ip = 127.0.0.1     # The ip address of the raspberry, should match the pi....
 show_debug_window = True     # Whether the debug window should be created
 ```
+
+## Interesting Python points
+
+I convert all original CamelCaseSharedMemoryNames to pythonic lower_case_with_underscores. Therefore, the `wheelAngularSpeed` becomes a `wheel_angular_speed`. See the `convert_to_lowercase_and_underscore(name)` function.
+
+The structs are converted to hashes and the data sent to the pi is `{'physics': physics_hash, 'graphics': graphics_hash ....}`. The conversion is done using the `struct_to_hash(s)` function.
