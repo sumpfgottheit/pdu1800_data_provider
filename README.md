@@ -5,8 +5,8 @@ It is a Python Assetto Corsa Plugin and _should_ run as 32Bit or 64Bit plugin, b
 
 ## Installation
 
-* Download and place it within a directory 'pdu1800_data_provider' within the $assettocorsa/apps/python/ directory
-* Edit the 'config.ini' to suit your needs
+* Download and place it within a directory `pdu1800_data_provider` within the $assettocorsa/apps/python/ directory
+* Edit the `config.ini` to suit your needs
 * Enable it from the 'General' Tab.
 * Take a look at the debug window which can be started ingame as application from the right application bar
 
